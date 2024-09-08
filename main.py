@@ -24,12 +24,23 @@ SUBJECTS_DATA = {
         },
         1: {  # Группа 1
             1: {  # Семестр 1
-                'Термех': 'https://example.com/termeh1',
-                'Математика': 'https://example.com/math1',
+                'Ангем': 'https://disk.yandex.ru/d/Hf4yhNdrY3ao2Q',
+                'Инжа': 'https://disk.yandex.ru/d/C_TwP-ASQsloDg',
+                'Иностранный': 'https://disk.yandex.ru/d/3Qg3VcuIKfAqnQ',
+                'Инфа': 'https://disk.yandex.ru/d/DvYFlZPXdge73Q',
+                'История': 'https://disk.yandex.ru/d/11C3DLL62Pfn1g',
+                'Матан': 'https://disk.yandex.ru/d/kti7hR_3IUUqcw',
             },
             2: {  # Семестр 2
-                'Термех': 'https://example.com/termeh2',
-                'Сопромат': 'https://example.com/sopromat',
+                'Алгебра': 'https://disk.yandex.ru/d/eHnhd14OL2E4Fw',
+                'Инжа': 'https://disk.yandex.ru/d/sclcH5ityxXS8A',
+                'Иностранный': 'https://disk.yandex.ru/d/94ob9Zj5NXi36Q',
+                'Инфа': 'https://disk.yandex.ru/d/FIT-lY9rlgjCwg',
+                'Линал': 'https://disk.yandex.ru/d/tDNhtMeUFTSCUg',
+                'Матан': 'https://disk.yandex.ru/d/hgI6IPV8gp9pZA',
+                'Матпакеты': 'https://disk.yandex.ru/d/Bd31g7kHmhq7lg',
+                'Спецвед': 'https://disk.yandex.ru/d/pLIl1MeaDergeA',
+                'Экология': 'https://disk.yandex.ru/d/O4fT8DIKD4AIkw',
             },
         },
         2: {  # Группа 2
@@ -41,19 +52,40 @@ SUBJECTS_DATA = {
             },
         },
     },
-    2: {  # Кафедра 2
+4: {  # Кафедра 2
         'all': {
-            'Английский язык': 'https://example.com/english',
+            'Английский язык': 'https://disk.yandex.ru/d/sTAPQeiuy19JZA',
+            'матан': 'https://disk.yandex.ru/d/tdreG7FrHZOmdw',
+            'Линал': 'https://disk.yandex.ru/d/iwsuJc9FaFm6Xw',
+            'Информатика': 'https://disk.yandex.ru/d/YhwoT-QClSOcrQ',
+            'Начертательная геометрия ': 'https://disk.yandex.ru/d/hnhm2OD3_rGCQA',
+            'Инженерная графика': 'https://disk.yandex.ru/d/K2dVzhBHrsH3pQ',
+            'Химия': 'https://disk.yandex.ru/d/w130JioEUhtUqw'
         },
-        1: {
+        2: {
             1: {
-                'Экономика': 'https://example.com/economics1',
             },
             2: {
-                'Менеджмент': 'https://example.com/management',
             },
         },
     },
+7:{
+'all': {
+            'Английский язык': 'https://disk.yandex.ru/d/sTAPQeiuy19JZA',
+            'матан': 'https://disk.yandex.ru/d/tdreG7FrHZOmdw',
+            'Линал': 'https://disk.yandex.ru/d/iwsuJc9FaFm6Xw',
+            'Информатика': 'https://disk.yandex.ru/d/YhwoT-QClSOcrQ',
+            'Начертательная геометрия ': 'https://disk.yandex.ru/d/hnhm2OD3_rGCQA',
+            'Инженерная графика': 'https://disk.yandex.ru/d/K2dVzhBHrsH3pQ',
+            'Химия': 'https://disk.yandex.ru/d/w130JioEUhtUqw'
+        },
+        2: {
+            1: {
+            },
+            2: {
+            },
+        },
+}
 }
 
 
@@ -67,7 +99,7 @@ async def get_user_data(user_id):
     async with aiosqlite.connect('users.db') as db:
         cursor = await db.execute('''
             SELECT semestr, group_number, kafedra, user_fullname
-            FROM users
+            FROM USERS
             WHERE user_id = ?
         ''', (user_id,))
         user_data = await cursor.fetchone()
@@ -102,6 +134,10 @@ KAFEDRA_OPTIONS: Final = {
     "ФН4": 4, "ФН7": 7, "ФН11": 11,
     "ФН12": 12, "ФН14": 14
 }
+
+class HelpStates(StatesGroup):
+    entering_subject = State()
+    entering_question = State()
 
 # Define states for the registration process
 class RegistrationStates(StatesGroup):
@@ -270,10 +306,6 @@ async def subject_handler(callback: types.CallbackQuery):
 #     await message.answer('Выберай!', reply_markup=keyboard)
 
 
-@dp.callback_query(F.data == 'help')
-async def help_handler(callback: types.CallbackQuery):
-    await callback.message.edit_text('Это раздел помощи. Ориши свой вопрос!.')
-
 @dp.callback_query(F.data == "profile")
 async def profile_handler(callback: types.CallbackQuery):
     user_data = await get_user_data(callback.from_user.id)
@@ -354,10 +386,62 @@ async def edit_name_handler(message: types.Message, state: FSMContext):
 
     await state.clear()
     await message.answer('Профиль успешно обновлен! Используйте /menu для доступа к функциям.')
+
+
+
+@dp.callback_query(F.data == 'help')
+async def help_handler(callback: types.CallbackQuery, state: FSMContext):
+    await callback.message.answer('Пожалуйста, укажите, по какому предмету вам нужна помощь:')
+    await state.set_state(HelpStates.entering_subject)
+
+@dp.message(HelpStates.entering_subject)
+async def enter_subject(message: types.Message, state: FSMContext):
+    await state.update_data(subject=message.text)
+    await message.answer('Опишите свою проблему:')
+    await state.set_state(HelpStates.entering_question)
+
+@dp.message(HelpStates.entering_question)
+async def enter_question(message: types.Message, state: FSMContext):
+    user_data = await state.get_data()
+    subject = user_data.get("subject")
+    question = message.text
+    username = message.from_user.username
+
+    # Проверка наличия имени пользователя
+    if not username:
+        await message.answer('У вас нет установленного имени пользователя в Telegram. Пожалуйста, установите его и попробуйте снова.')
+        await state.clear()
+        return
+
+    # Сохранение вопроса в базе данных
+    async with aiosqlite.connect('users.db') as db:
+        await db.execute('''
+            INSERT INTO questions (username, subject, question)
+            VALUES (?, ?, ?)
+        ''', (username, subject, question))
+        await db.commit()
+
+    await message.answer('Ваш вопрос был успешно сохранен. Мы свяжемся с вами в ближайшее время.')
+    await state.clear()
+
+@dp.message(Command("view_questions"))
+async def view_questions_handler(message: types.Message):
+    async with aiosqlite.connect('users.db') as db:
+        async with db.execute('SELECT username, subject, question FROM questions') as cursor:
+            questions = await cursor.fetchall()
+            if questions:
+                response = 'Список вопросов:\n\n'
+                for username, subject, question in questions:
+                    response += f'Username: {username or "N/A"}\nSubject: {subject}\nQuestion: {question}\n\n'
+                await message.answer(response)
+            else:
+                await message.answer('Нет вопросов.')
+
 async def main() -> None:
     # Initialize database
     async with aiosqlite.connect('users.db') as db:
-        await db.execute('''
+        # Create users table if it doesn't exist
+        await db.execute(''' 
             CREATE TABLE IF NOT EXISTS users (
                 user_id INTEGER PRIMARY KEY,
                 user_fullname TEXT,
@@ -368,6 +452,17 @@ async def main() -> None:
                 kafedra INTEGER
             )
         ''')
+
+        # Create questions table if it doesn't exist
+        await db.execute('''
+            CREATE TABLE IF NOT EXISTS questions (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                username TEXT,
+                subject TEXT,
+                question TEXT
+            )
+        ''')
+        
         await db.commit()
 
     try:
@@ -379,7 +474,6 @@ async def main() -> None:
 
 if __name__ == "__main__":
     asyncio.run(main())
-
 
 
 # import asyncio, aiosqlite
